@@ -1,7 +1,11 @@
-import React from 'react';
+/* eslint-disable react/jsx-no-target-blank */
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, {useEffect, useState} from 'react';
 import {useRouteMatch, Link} from 'react-router-dom';
 
 import {FiChevronLeft, FiChevronRight} from 'react-icons/fi';
+
+import api from '../../services/api';
 
 import {Header, RepositoryInfo, Issues} from './styles';
 
@@ -11,8 +15,43 @@ interface RepositoryParams {
     repository: string;
 }
 
+interface RepositoryData {
+    full_name:string;
+    description: string;
+    owner : {
+        login: string;
+        avatar_url: string;
+    }
+    stargazers_count: number;
+    forks_count: number;
+    open_issues_count: number;
+}
+
+interface Issue {
+    id: number;
+    title: string;
+    html_url: string;
+    user: {
+        login: string;
+    }
+}
+
 const Repository: React.FC = ()=>{
+    const [repositoryInfo, setRepositoryInfo] = useState<RepositoryData | null>(null);
+    const [issues, setIssues] = useState<Issue[]>([]);
     const {params} = useRouteMatch<RepositoryParams>();
+    
+    useEffect(()=>{
+        api.get(`repos/${params.repository}`).then( response => {
+            setRepositoryInfo(response.data);
+        });
+
+        api.get(`repos/${params.repository}/issues`).then( response => {
+            setIssues(response.data);
+        });
+
+    }, [params.repository]);
+
     return(
     <>
         <Header>
@@ -23,41 +62,47 @@ const Repository: React.FC = ()=>{
             </Link>
         </Header>
 
-        <RepositoryInfo>
+        {repositoryInfo && (
+            <RepositoryInfo>
             <header>
-                <img src="https://avatars0.githubusercontent.com/u/28929274?v=4" alt="Rocketseat"/>
+                <img src={repositoryInfo.owner.avatar_url} alt={repositoryInfo.owner.login}/>
                 <div>
-                    <strong>{params.repository}</strong>
-                    <p>Descrição do repositório</p>
+                    <strong>{repositoryInfo.full_name}</strong>
+                    <p>{repositoryInfo.description}</p>
                 </div>
             </header>
 
             <ul>
                 <li>
-                    <strong>1808</strong>
+                    <strong>{repositoryInfo.stargazers_count}</strong>
                     <span>Stars</span>
                 </li>
                 <li>
-                    <strong>48</strong>
+                    <strong>{repositoryInfo.forks_count}</strong>
                     <span>Forks</span>
                 </li>
                 <li>
-                    <strong>67</strong>
+                    <strong>{repositoryInfo.open_issues_count}</strong>
                     <span>Issues</span>
                 </li>
             </ul>
-        </RepositoryInfo>
+            </RepositoryInfo>
+        )}
 
-        <Issues>
-            <Link to={'asdada'}>
+        
+
+    <Issues>
+        {issues.map((issue)=>(
+            <a target="_blank" key={issue.id} href={issue.html_url}>
                 <div>
-                    <strong>kaksadhkjh</strong>
-                    <p>adsadas</p>
+                    <strong>{issue.title}</strong>
+                    <p>{issue.user.login}</p>
                 </div>
 
                 <FiChevronRight  size={20} />
-            </Link>
-        </Issues>
+            </a>
+        ))}
+    </Issues>
     </>
     );
 }
